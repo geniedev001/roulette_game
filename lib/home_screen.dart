@@ -18,7 +18,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(
-            height: 50,
+            height: 10,
           ),
           OutlinedButton.icon(
             onPressed: () {
