@@ -62,10 +62,10 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
 
   late Animation<double> animation;
 
-  String SelectedColor = "green";
+  String selectedColor = "green";
 
-  int SelectedNumber = 0;
-  int NumberRotations = 0;
+  int selectedNumber = 0;
+  int numberRotations = 0;
 
   int randomSectorIndex = -1;
   List<double> sectorAngle = [];
@@ -73,7 +73,8 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
   math.Random random = math.Random();
 
   TextEditingController betController = TextEditingController(text: '200');
-  String selectedBet = 'Red';
+  String selectedBetType = 'Red';
+  List<Bet> betList = [];
 
   Future<void> playSound(String assetPath) async {
     try {
@@ -104,6 +105,25 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
     return (2 * math.pi * sector.length) + sectorAngle[randomSectorIndex];
   }
 
+  void resetGame() {
+    turns = false;
+    Radians = 0;
+    selectedNumber = 0;
+    selectedColor = "Green";
+    numberRotations = 0;
+    coins = 5000;
+    betList.clear();
+    setState(() {
+      animationController.reset();
+    });
+  }
+
+  void handleBetAndPlay(double bet, String betType) {
+    if (bet <= 0 || bet > coins) {
+      return;
+    }
+  }
+
   Widget _body() {
     return Container(
       height: double.infinity,
@@ -128,7 +148,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
         _gameTitle(),
         _gameRouletteWheel(),
         _gameActionRotate(),
-        //_gameActionsReset(),
+        _gameActionReset(),
         _gameStatistic(),
         _gameBet(),
         _coinDisplay(),
@@ -231,19 +251,19 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
               TableRow(
                 children: [
                   _titleColumn("Number"),
-                  _valueColumn(SelectedNumber),
+                  _valueColumn(selectedNumber),
                 ],
               ),
               TableRow(
                 children: [
                   _titleColumn("Color"),
-                  _valueColumn(SelectedColor),
+                  _valueColumn(selectedColor),
                 ],
               ),
               TableRow(
                 children: [
                   _titleColumn("Spins"),
-                  _valueColumn(NumberRotations),
+                  _valueColumn(numberRotations),
                 ],
               ),
             ],
@@ -374,6 +394,51 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
     );
   }
 
+  Widget _gameActionReset() {
+    return Align(
+      alignment: Alignment.topRight,
+      child: Container(
+        margin: EdgeInsets.only(
+          top: MediaQuery.of(context).size.height * 0.5,
+          left: 20,
+          right: 20,
+        ),
+        child: Row(
+          children: [
+            InkWell(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.all(
+                    Radius.circular(4),
+                  ),
+                  border: Border.all(
+                    color: const Color.fromARGB(255, 0, 0, 0),
+                  ),
+                  color: const Color.fromARGB(255, 255, 252, 252),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                child: const Text(
+                  "Reset",
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Color.fromARGB(201, 0, 0, 0),
+                  ),
+                ),
+              ),
+              onTap: () {
+                if (turns) return;
+                setState(() {
+                  playSound("assets/buttonSound.mp3");
+                  resetGame();
+                });
+              },
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _gameBet() {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
@@ -421,10 +486,10 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                   child: ButtonTheme(
                     alignedDropdown: true,
                     child: DropdownButton<String>(
-                      value: selectedBet,
+                      value: selectedBetType,
                       onChanged: (String? newValue) {
                         setState(() {
-                          selectedBet = newValue ?? 'Red';
+                          selectedBetType = newValue ?? 'Red';
                         });
                       },
                       items: <String>['Red', 'Black', 'Even', 'Odd'].map(
@@ -445,10 +510,40 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.center,
+                child: ElevatedButton(
+                  onPressed: () {
+                    playSound("assets/buttonSound.mp3");
+                    double bet = double.tryParse(betController.text) ?? 0.0;
+                    String betType = selectedBetType;
+                    handleBetAndPlay(bet, betType);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  ),
+                  child: const Text(
+                    'Confirm',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color.fromARGB(255, 5, 91, 4),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+class Bet {
+  double bet;
+  String art;
+
+  Bet({required this.bet, required this.art});
 }
