@@ -1,6 +1,5 @@
 import 'dart:core';
 import 'package:assets_audio_player/assets_audio_player.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
@@ -53,28 +52,96 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
     3,
     26
   ];
+  List<String> colorSector = [
+    'Green', //Sector 0
+    'Red', //Sector 32
+    'Black', //Sector 15
+    'Red', //Sector 19
+    'Black', //Sector 4
+    'Red', //Sector 21
+    'Black', //Sector 2
+    'Red', //Sector 25
+    'Black', //Sector 17
+    'Red', //Sector 34
+    'Black', //Sector 6
+    'Red', //Sector 27
+    'Black', // Sector 13
+    'Red', //Sector 36
+    'Black', //Sector 11
+    'Red', //Sector 30
+    'Black', //Sector 8
+    'Red', //Sector 23
+    'Black', //Sector 10
+    'Red', //Sector 5
+    'Black', //Sector 24
+    'Red', //Sector 16
+    'Black', //Sector 33
+    'Red', //Sector 1
+    'Black', //Sector 20
+    'Red', //Sector 14
+    'Black', //Sector 31
+    'Red', //Sector 9
+    'Black', //Sector 22
+    'Red', //Sector 18
+    'Black', //Sector 29
+    'Red', //Sector 7
+    'Black', //Sector 28
+    'Red', //Sector 12
+    'Black', //Sector 35
+    'Red', //Sector 3
+  ];
+  int randomSectorIndex = -1;
+  List<double> sectorAngle = [];
   double Radians = 0;
-  double coins = 5000;
 
-  bool turns = false;
+  bool turn = false;
+
+  int selectedNumber = 0;
+
+  String selectedColor = "green";
+
+  int numberRotations = 0;
 
   late AnimationController animationController;
 
   late Animation<double> animation;
-
-  String selectedColor = "green";
-
-  int selectedNumber = 0;
-  int numberRotations = 0;
-
-  int randomSectorIndex = -1;
-  List<double> sectorAngle = [];
 
   math.Random random = math.Random();
 
   TextEditingController betController = TextEditingController(text: '200');
   String selectedBetType = 'Red';
   List<Bet> betList = [];
+
+  double coins = 5000;
+  double profitOrLoss = 0;
+  @override
+  void initState() {
+    super.initState();
+
+    generateSectorAngle();
+
+    animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5100),
+    );
+
+    Tween<double> tween = Tween<double>(begin: 0, end: 1);
+
+    CurvedAnimation curve =
+        CurvedAnimation(parent: animationController, curve: Curves.decelerate);
+
+    animation = tween.animate(curve);
+
+    animationController.addListener(() {
+      if (animationController.isCompleted) {
+        setState(() {
+          recordStats();
+          turn = false;
+          betMatch();
+        });
+      }
+    });
+  }
 
   Future<void> playSound(String assetPath) async {
     try {
@@ -93,7 +160,74 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
     );
   }
 
-  void turn() {
+  void generateSectorAngle() {
+    double sectorRadians = 2 * math.pi / sector.length;
+
+    for (int i = 0; i < sector.length; i++) {
+      sectorAngle.add((i + 1) * sectorRadians);
+    }
+  }
+
+  void recordStats() {
+    selectedNumber = sector[sector.length - (randomSectorIndex = 1)];
+    selectedColor = colorSector[sector.length - (randomSectorIndex + 1)];
+    numberRotations = numberRotations + 1;
+  }
+
+  void betMatch() {
+    profitOrLoss = 0;
+
+    final String wonColor = selectedColor;
+    final int wonNumber = selectedNumber;
+
+    for (final bet in betList) {
+      if (bet.type == wonColor ||
+          (bet.type == "Even" && wonNumber % 2 == 0) ||
+          (bet.type == "Odd" && wonNumber % 2 != 0)) {
+        profitOrLoss += (bet.bet * 2).toInt();
+        coins += (bet.bet * 2).toInt();
+      }
+    }
+
+    betList.clear();
+
+    setState(() {});
+
+    _showProfitOrLossPopup(profitOrLoss);
+  }
+
+  void _showProfitOrLossPopup(double profitOrLoss) {
+    String message;
+    String title = "";
+    if (profitOrLoss > 0) {
+      playSound("assets/cashSound.mp3");
+      message = "You have won!";
+      title = "VICTORY";
+    } else {
+      playSound("assets/bruhSound.mp3");
+      message = "You didn't win any coins";
+      title = "Not enough profit";
+    }
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text("OK"),
+              ),
+            ],
+          );
+        });
+  }
+
+  void _turn() {
     randomSectorIndex = random.nextInt(sector.length);
     double randomRadians = generateRandomSectorAngle();
     animationController.reset();
@@ -106,7 +240,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
   }
 
   void resetGame() {
-    turns = false;
+    turn = false;
     Radians = 0;
     selectedNumber = 0;
     selectedColor = "Green";
@@ -365,25 +499,25 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                   border: Border.all(
                     color: const Color.fromARGB(255, 0, 0, 0),
                   ),
-                  color: turns
+                  color: turn
                       ? Colors.transparent
                       : const Color.fromARGB(255, 255, 17, 0),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 child: Text(
-                  turns ? "Spinning" : "Turn",
+                  turn ? "Spinning" : "Turn",
                   style: TextStyle(
-                    fontSize: turns ? 10 : 25,
+                    fontSize: turn ? 10 : 25,
                     color: const Color.fromARGB(255, 255, 255, 255),
                   ),
                 ),
               ),
               onTap: () {
                 setState(() {
-                  if (!turns) {
+                  if (!turn) {
                     playSound("assets/roulette_sound1.mp3");
-                    turn();
-                    turns = true;
+                    _turn();
+                    turn = true;
                   }
                 });
               },
@@ -426,7 +560,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                 ),
               ),
               onTap: () {
-                if (turns) return;
+                if (turn) return;
                 setState(() {
                   playSound("assets/buttonSound.mp3");
                   resetGame();
@@ -543,7 +677,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
 
 class Bet {
   double bet;
-  String art;
+  String type;
 
-  Bet({required this.bet, required this.art});
+  Bet({required this.bet, required this.type});
 }

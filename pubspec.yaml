@@ -34,3 +34,5 @@ flutter:
   - assets/runderrandaussen.png
   - assets/rouletterad.png
   - assets/roulette_sound1.mp3
+  - assets/buttonSound.mp3
+  - assets/cashSound.mp3
