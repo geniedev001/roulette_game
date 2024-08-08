@@ -1,5 +1,8 @@
 import 'dart:core';
+import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
 class Game extends StatefulWidget {
   const Game({super.key});
@@ -9,8 +12,51 @@ class Game extends StatefulWidget {
 }
 
 class _GameState extends State<Game> with SingleTickerProviderStateMixin {
-  double bogenmass = 0;
+  final AssetsAudioPlayer audioPlayer = AssetsAudioPlayer();
+
+  List<int> sector = [
+    0,
+    32,
+    15,
+    19,
+    4,
+    21,
+    2,
+    25,
+    17,
+    34,
+    6,
+    27,
+    13,
+    36,
+    11,
+    30,
+    8,
+    23,
+    10,
+    5,
+    24,
+    16,
+    33,
+    1,
+    20,
+    14,
+    31,
+    9,
+    22,
+    18,
+    29,
+    7,
+    28,
+    12,
+    35,
+    3,
+    26
+  ];
+  double Radians = 0;
   double coins = 5000;
+
+  bool turns = false;
 
   late AnimationController animationController;
 
@@ -21,11 +67,41 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
   int SelectedNumber = 0;
   int NumberRotations = 0;
 
+  int randomSectorIndex = -1;
+  List<double> sectorAngle = [];
+
+  math.Random random = math.Random();
+
+  TextEditingController betController = TextEditingController(text: '200');
+  String selectedBet = 'Red';
+
+  Future<void> playSound(String assetPath) async {
+    try {
+      final Audio audio = Audio(assetPath);
+      await audioPlayer.open(audio);
+      audioPlayer.play();
+    } catch (e) {
+      print('Error playing audio file');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _body(),
     );
+  }
+
+  void turn() {
+    randomSectorIndex = random.nextInt(sector.length);
+    double randomRadians = generateRandomSectorAngle();
+    animationController.reset();
+    Radians = randomRadians;
+    animationController.forward();
+  }
+
+  double generateRandomSectorAngle() {
+    return (2 * math.pi * sector.length) + sectorAngle[randomSectorIndex];
   }
 
   Widget _body() {
@@ -51,10 +127,10 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
       children: [
         _gameTitle(),
         _gameRouletteWheel(),
-        //_gameActionRotate(),
+        _gameActionRotate(),
         //_gameActionsReset(),
         _gameStatistic(),
-        // _gameBet(),
+        _gameBet(),
         _coinDisplay(),
       ],
     );
@@ -108,7 +184,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
           child: AnimatedBuilder(
             animation: animation,
             builder: (context, child) => Transform.rotate(
-              angle: animationController.value * bogenmass,
+              angle: animationController.value * Radians,
               child: Container(
                 margin:
                     EdgeInsets.all(MediaQuery.of(context).size.width * 0.005),
@@ -241,6 +317,133 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                   _titleColumn("Coins"),
                   _valueColumn(coins),
                 ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _gameActionRotate() {
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Container(
+        margin: EdgeInsets.only(
+          top: 50,
+          bottom: MediaQuery.of(context).size.height * 0.2,
+          left: 20,
+          right: MediaQuery.of(context).size.height * 0.2,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            InkWell(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.all(Radius.circular(4)),
+                  border: Border.all(
+                    color: const Color.fromARGB(255, 0, 0, 0),
+                  ),
+                  color: turns
+                      ? Colors.transparent
+                      : const Color.fromARGB(255, 255, 17, 0),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                child: Text(
+                  turns ? "Spinning" : "Turn",
+                  style: TextStyle(
+                    fontSize: turns ? 10 : 25,
+                    color: const Color.fromARGB(255, 255, 255, 255),
+                  ),
+                ),
+              ),
+              onTap: () {
+                setState(() {
+                  if (!turns) {
+                    playSound("assets/roulette_sound1.mp3");
+                    turn();
+                    turns = true;
+                  }
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _gameBet() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: screenWidth * (1.0 / 3.3),
+        margin: const EdgeInsets.only(
+          top: 10,
+          bottom: 10,
+          left: 10,
+        ),
+        decoration: BoxDecoration(
+          color: const Color.fromARGB(255, 13, 100, 3),
+          border: Border.all(color: Colors.black),
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: betController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Bet',
+                  labelStyle: TextStyle(fontSize: 20, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: screenWidth * (1.0 / 3.3),
+                height: screenHeight * (1.0 / 7.5),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 130, 255, 105),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: ButtonTheme(
+                    alignedDropdown: true,
+                    child: DropdownButton<String>(
+                      value: selectedBet,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedBet = newValue ?? 'Red';
+                        });
+                      },
+                      items: <String>['Red', 'Black', 'Even', 'Odd'].map(
+                        (String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(
+                              value,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Color.fromARGB(255, 0, 0, 0),
+                              ),
+                            ),
+                          );
+                        },
+                      ).toList(),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
