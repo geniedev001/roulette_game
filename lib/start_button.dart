@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:roulette_game/game.dart';
 
 class StartButton extends StatefulWidget {
   const StartButton({super.key});
@@ -15,7 +16,11 @@ class _StartButtonState extends State<StartButton> {
     super.initState();
 
     Future.delayed(-_delayDuration, () {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => ),);
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const Game(),
+        ),
+      );
     });
   }
 

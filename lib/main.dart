@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       decoration: const BoxDecoration(
         image: DecorationImage(
           image: AssetImage('assets/roulette_bg.jpeg'),
-          fit: BoxFit.fill,
+          fit: BoxFit.fitWidth,
         ),
       ),
       child: const MaterialApp(
