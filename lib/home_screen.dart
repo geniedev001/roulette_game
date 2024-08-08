@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:roulette_game/start_button.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -20,7 +21,14 @@ class HomeScreen extends StatelessWidget {
             height: 50,
           ),
           OutlinedButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StartButton(),
+                ),
+              );
+            },
             style: OutlinedButton.styleFrom(
               backgroundColor: Colors.white,
             ),
