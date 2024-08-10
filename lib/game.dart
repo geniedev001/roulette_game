@@ -11,8 +11,10 @@ class Game extends StatefulWidget {
 }
 
 class _GameState extends State<Game> with SingleTickerProviderStateMixin {
+  //Audioplayer
   final AssetsAudioPlayer audioPlayer = AssetsAudioPlayer();
 
+  //Data
   List<int> sector = [
     0,
     32,
@@ -94,7 +96,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
   List<double> sectorAngle = [];
   double Radians = 0;
 
-  bool turn = false;
+  bool spin = false;
 
   int selectedNumber = 0;
 
@@ -102,11 +104,12 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
 
   int numberRotations = 0;
 
+  math.Random random = math.Random();
+
+  //Spin Animation Controller
   late AnimationController animationController;
 
   late Animation<double> animation;
-
-  math.Random random = math.Random();
 
   TextEditingController betController = TextEditingController(text: '200');
   String selectedBetType = 'Red';
@@ -125,6 +128,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
       duration: const Duration(milliseconds: 5100),
     );
 
+    //Animate accross an area
     Tween<double> tween = Tween<double>(begin: 0, end: 1);
 
     CurvedAnimation curve =
@@ -136,7 +140,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
       if (animationController.isCompleted) {
         setState(() {
           recordStats();
-          turn = false;
+          spin = false;
           betMatch();
         });
       }
@@ -154,10 +158,29 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    audioPlayer.dispose();
+    animationController.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _body(),
     );
+  }
+
+  void _spin() {
+    randomSectorIndex = random.nextInt(sector.length);
+    double randomRadians = generateRandomSectorAngle();
+    animationController.reset();
+    Radians = randomRadians;
+    animationController.forward();
+  }
+
+  double generateRandomSectorAngle() {
+    return (2 * math.pi * sector.length) + sectorAngle[randomSectorIndex];
   }
 
   void generateSectorAngle() {
@@ -169,7 +192,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
   }
 
   void recordStats() {
-    selectedNumber = sector[sector.length - (randomSectorIndex = 1)];
+    selectedNumber = sector[sector.length - (randomSectorIndex + 1)];
     selectedColor = colorSector[sector.length - (randomSectorIndex + 1)];
     numberRotations = numberRotations + 1;
   }
@@ -206,7 +229,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
     } else {
       playSound("assets/bruhSound.mp3");
       message = "You didn't win any coins";
-      title = "Not enough profit";
+      title = "No profit";
     }
 
     showDialog(
@@ -227,20 +250,8 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
         });
   }
 
-  void _turn() {
-    randomSectorIndex = random.nextInt(sector.length);
-    double randomRadians = generateRandomSectorAngle();
-    animationController.reset();
-    Radians = randomRadians;
-    animationController.forward();
-  }
-
-  double generateRandomSectorAngle() {
-    return (2 * math.pi * sector.length) + sectorAngle[randomSectorIndex];
-  }
-
   void resetGame() {
-    turn = false;
+    spin = false;
     Radians = 0;
     selectedNumber = 0;
     selectedColor = "Green";
@@ -252,10 +263,34 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
     });
   }
 
+  //This feature handles placing bets and updating the game state
   void handleBetAndPlay(double bet, String betType) {
     if (bet <= 0 || bet > coins) {
+      // Check whether the bet is valid and whether the player has enough coins
+      //Display an error message or toast that the bet is void
       return;
     }
+
+    //Go through the existing bets and check whether the bet type already exists
+    bool betTypeExist = false;
+    for (int i = 0; i < betList.length; i++) {
+      final Bet betObj = betList[i];
+      if (betObj.type == betType) {
+        betList[i].bet += bet;
+        betTypeExist = true;
+        break;
+      }
+    }
+
+    if (!betTypeExist) {
+      betList.add(Bet(bet: bet, type: betType));
+    }
+
+    //Reduce the coins by the bet amount
+    coins -= bet;
+
+    //Refresh the widget to show the new betting list
+    setState(() {});
   }
 
   Widget _body() {
@@ -499,25 +534,25 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                   border: Border.all(
                     color: const Color.fromARGB(255, 0, 0, 0),
                   ),
-                  color: turn
+                  color: spin
                       ? Colors.transparent
                       : const Color.fromARGB(255, 255, 17, 0),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 child: Text(
-                  turn ? "Spinning" : "Turn",
+                  spin ? "Spinning" : "Spin",
                   style: TextStyle(
-                    fontSize: turn ? 10 : 25,
+                    fontSize: spin ? 10 : 25,
                     color: const Color.fromARGB(255, 255, 255, 255),
                   ),
                 ),
               ),
               onTap: () {
                 setState(() {
-                  if (!turn) {
+                  if (!spin) {
                     playSound("assets/roulette_sound1.mp3");
-                    _turn();
-                    turn = true;
+                    _spin();
+                    spin = true;
                   }
                 });
               },
@@ -560,7 +595,7 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                 ),
               ),
               onTap: () {
-                if (turn) return;
+                if (spin) return;
                 setState(() {
                   playSound("assets/buttonSound.mp3");
                   resetGame();
@@ -664,6 +699,30 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                       fontSize: 16,
                       color: Color.fromARGB(255, 5, 91, 4),
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Betting List:',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white),
+                  borderRadius: BorderRadius.circular(0.0),
+                ),
+                height: 6 * 13.0,
+                width: screenWidth * 0.3,
+                child: Center(
+                  child: Text(
+                    betList.isEmpty
+                        ? 'No bet placed'
+                        : betList
+                            .map((Bet) =>
+                                '${Bet.type}:${Bet.bet.toStringAsFixed(2)}')
+                            .join('\n'),
+                    style: const TextStyle(fontSize: 13, color: Colors.white),
                   ),
                 ),
               ),

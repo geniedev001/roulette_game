@@ -1,39 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:roulette_game/game.dart';
 
-class StartButton extends StatefulWidget {
+class StartButton extends StatelessWidget {
   const StartButton({super.key});
 
   @override
-  State<StartButton> createState() => _StartButtonState();
-}
-
-class _StartButtonState extends State<StartButton> {
-  static const _delayDuration = Duration(seconds: 2);
-
-  @override
-  void initState() {
-    super.initState();
-
-    Future.delayed(-_delayDuration, () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const Game(),
-        ),
-      );
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/roulette_App_3000.jpg'),
-            fit: BoxFit.cover,
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            child: Image.asset(
+              'assets/sample.png',
+              width: 450,
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
+          const SizedBox(
+            height: 10,
+          ),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const Game(),
+                ),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.white,
+            ),
+            icon: const Icon(
+              Icons.arrow_forward,
+              color: Colors.redAccent,
+              size: 30,
+            ),
+            label: const Text(
+              'Start',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.blueAccent,
+                fontSize: 20,
+              ),
+            ),
+          )
+        ],
       ),
     );
   }
